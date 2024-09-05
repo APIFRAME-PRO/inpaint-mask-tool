@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APIFRAME Outpaint Mask</title>
+    <!-- Load Tailwind CSS from CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+    <!-- Main container for the application -->
+    <div class="container mx-auto p-4">
+        <!-- Input section for image URL -->
+        <div class="mb-4">
+            <div class="flex space-x-2">
+                <input type="url" id="imageUrl" placeholder="Enter image URL"
+                    class="w-[calc(100%-200px)] p-2 border rounded">
+                <button id="clearUrl"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 w-[200px] font-bold py-2 px-4 rounded">
+                    Clear URL
+                </button>
+            </div>
+        </div>
+        <!-- Textarea to display mask data -->
+        <div>
+            <textarea id="maskData" rows="4" class="w-full mt-2 p-2 border rounded"
+                placeholder="Mask data will appear here"></textarea>
+        </div>
+        <!-- Buttons for resetting and copying mask -->
+        <div class="mt-2 flex space-x-2">
+            <button id="resetMask" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Reset Mask
+            </button>
+            <button id="copyMask" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                Copy Mask
+            </button>
+        </div>
+    </div>
+
+    <!-- Load the lasso tool script -->
+    <script src="lasso-canvas-image.js"></script>
+
+    <script>
+        // Get references to DOM elements
+        const imageUrl = document.getElementById('imageUrl');
+        const clearUrl = document.getElementById('clearUrl');
+        const container = document.querySelector('.container');
+        let imageContainer, displayedImage, lassoCanvas;
+
+        // Add event listeners
+        imageUrl.addEventListener('input', updateImage);
+        clearUrl.addEventListener('click', clearUrlField);
+
+        // Function to create and set up the image container
+        function createImageContainer() {
+            imageContainer = document.createElement('div');
+            imageContainer.id = 'imageContainer';
+            imageContainer.className = 'mt-4 relative flex justify-center w-fit mx-auto';
+            
+            displayedImage = document.createElement('img');
+            displayedImage.id = 'displayedImage';
+            displayedImage.alt = 'Entered image';
+            displayedImage.className = '';
+            
+            lassoCanvas = document.createElement('canvas');
+            lassoCanvas.id = 'lassoCanvas';
+            lassoCanvas.className = 'mx-auto w-fit';
+            
+            imageContainer.appendChild(displayedImage);
+            imageContainer.appendChild(lassoCanvas);
+            
+            container.insertBefore(imageContainer, document.getElementById('maskData').parentNode);
+        }
+
+        // Function to update the displayed image when URL changes
+        function updateImage() {
+            const url = imageUrl.value.trim();
+            if (url) {
+                if (!imageContainer) {
+                    createImageContainer();
+                } else {
+                    // Clear existing image container
+                    imageContainer.remove();
+                    createImageContainer();
+                }
+                displayedImage.src = url;
+                displayedImage.style.display = 'block';
+                lassoCanvas.style.display = 'block';
+                initLasso();
+            } else {
+                clearDisplayedImage();
+            }
+        }
+
+        // Function to clear the URL input field
+        function clearUrlField() {
+            imageUrl.value = '';
+            clearDisplayedImage();
+        }
+
+        // Function to remove the displayed image and reset related elements
+        function clearDisplayedImage() {
+            if (imageContainer) {
+                imageContainer.remove();
+                imageContainer = null;
+                displayedImage = null;
+                lassoCanvas = null;
+            }
+            if (lasso) {
+                lasso.reset();
+            }
+            document.getElementById('maskData').value = '';
+        }
+    </script>
+
+    <script>
+        let lasso;
+
+        // Function to initialize the lasso tool
+        function initLasso() {
+            lasso = createLasso({
+                element: displayedImage,
+                onChange: (polygon) => {
+                    if (polygon) {
+                        const maskImage = createMaskImage(polygon);
+                        document.getElementById('maskData').value = maskImage;
+                    } else {
+                        document.getElementById('maskData').value = '';
+                    }
+                }
+            });
+        }
+
+        // Function to create a mask image from the lasso polygon
+        function createMaskImage(polygon) {
+            const canvas = document.createElement('canvas');
+            canvas.width = displayedImage.naturalWidth;
+            canvas.height = displayedImage.naturalHeight;
+            const ctx = canvas.getContext('2d');
+
+            // Fill the canvas with black (background)
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the white polygon (mask area)
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            const points = polygon.split(' ').map(p => p.split(',').map(Number));
+            ctx.moveTo(points[0][0], points[0][1]);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i][0], points[i][1]);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Return the mask as a data URL
+            return canvas.toDataURL();
+        }
+
+        // Event listener for the Reset Mask button
+        document.getElementById('resetMask').addEventListener('click', () => {
+            if (lasso) {
+                lasso.reset();
+            }
+        });
+
+        // Event listener for the Copy Mask button
+        document.getElementById('copyMask').addEventListener('click', () => {
+            const maskData = document.getElementById('maskData');
+            maskData.select();
+            document.execCommand('copy');
+        });
+    </script>
+</body>
+
+</html>
