@@ -1,8 +1,8 @@
-# APIFRAME Outpaint Mask Tool
+# APIFRAME Inpaint Mask Tool
 
-This tool allows users to create outpaint masks for images using a lasso selection tool. It's designed to work with the APIFRAME system for image manipulation and generation.
+This tool allows users to create inpaint masks for images using a lasso selection tool. It's designed to work with the APIFRAME system for image manipulation and generation.
 
-[Live Demo](https://apiframe-pro.github.io/outpaint-mask-tool/)
+[Live Demo](https://apiframe-pro.github.io/inpaint-mask-tool/)
 
 ## Features
 
